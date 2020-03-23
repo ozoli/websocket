@@ -8,6 +8,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,11 +16,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+var addr = flag.String("addr", "0.0.0.0:9090", "http service address")
 
 var upgrader = websocket.Upgrader{} // use default options
 
 func echo(w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		// TODO FIXME need to check the origins we support
+		return true
+	}
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
@@ -33,7 +38,9 @@ func echo(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		log.Printf("recv: %s", message)
-		err = c.WriteMessage(mt, message)
+		replyMessage := []byte(fmt.Sprintf("%s recv at server", string(message)))
+		log.Printf("reply: %s", replyMessage)
+		err = c.WriteMessage(mt, replyMessage)
 		if err != nil {
 			log.Println("write:", err)
 			break
